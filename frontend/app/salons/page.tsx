@@ -9,7 +9,7 @@ import SalonCard from '@/components/ui/SalonCard'
 import { cn } from '@/lib/utils'
 import type { Salon } from '@/lib/types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://salon-finding-project.onrender.com'
 
 type FilterState = {
   areas: string[]

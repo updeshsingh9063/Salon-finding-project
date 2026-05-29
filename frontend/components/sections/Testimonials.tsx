@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { fadeUp } from '@/lib/motion'
 import type { Testimonial } from '@/lib/types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://salon-finding-project.onrender.com'
 
 const TestimonialSkeleton = ({ delay = 0 }: { delay?: number }) => (
   <motion.div

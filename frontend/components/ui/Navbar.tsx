@@ -60,7 +60,7 @@ const Navbar = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://salon-finding-project.onrender.com'
       let endpoint = ''
       let body = {}
       

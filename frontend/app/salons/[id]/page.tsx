@@ -22,7 +22,7 @@ export default function SalonDetailPage({ params }: { params: { id: string } }) 
 
   // Fetch fresh salon data from API
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://salon-finding-project.onrender.com'
     setLoading(true)
     Promise.all([
       fetch(`${apiUrl}/api/salons/${params.id}`).then(res => { if (!res.ok) throw new Error(); return res.json() }),

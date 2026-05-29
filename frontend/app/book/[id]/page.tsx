@@ -11,7 +11,7 @@ import { SERVICES } from '@/lib/data'
 import { cn } from '@/lib/utils'
 import type { Salon } from '@/lib/types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://salon-finding-project.onrender.com'
 type BookingStep = 'services' | 'datetime' | 'details' | 'confirm' | 'success'
 
 export default function BookingPage({ params }: { params: { id: string } }) {

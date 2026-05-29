@@ -26,14 +26,14 @@ const SalonSchema = new Schema(
   {
     versionKey: false,
     toJSON: {
-      transform(_doc, ret) {
+      transform(_doc: any, ret: any) {
         ret.id = ret._id
         delete ret._id
         return ret
       },
     },
     toObject: {
-      transform(_doc, ret) {
+      transform(_doc: any, ret: any) {
         ret.id = ret._id
         delete ret._id
         return ret

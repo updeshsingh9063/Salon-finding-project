@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageSquare, X, Send, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -23,6 +23,59 @@ const AIChat = () => {
     },
   ])
   const [inputText, setInputText] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, isLoading])
+
+  // Listen for open event from other components
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true)
+    window.addEventListener('open-ai-chat', handleOpen)
+    return () => window.removeEventListener('open-ai-chat', handleOpen)
+  }, [])
+
+  // Listen for prefill+send event from AIConsultant chips
+  useEffect(() => {
+    const handlePrefill = (e: Event) => {
+      const text = (e as CustomEvent<string>).detail
+      if (!text) return
+      setIsOpen(true)
+      // Small delay so the panel animates open before sending
+      setTimeout(() => {
+        setMessages(prev => [
+          ...prev,
+          { id: Date.now().toString(), text, sender: 'user', timestamp: new Date() },
+        ])
+        setIsLoading(true)
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+        fetch(`${apiUrl}/api/ai/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text }),
+        })
+          .then(r => r.json())
+          .then(data => {
+            setMessages(prev => [
+              ...prev,
+              { id: (Date.now() + 1).toString(), text: data.reply || 'Let me help you find the perfect salon!', sender: 'ai', timestamp: new Date() },
+            ])
+          })
+          .catch(() => {
+            setMessages(prev => [
+              ...prev,
+              { id: (Date.now() + 1).toString(), text: "I'm having trouble connecting. Ask me about salons in Mumbai!", sender: 'ai', timestamp: new Date() },
+            ])
+          })
+          .finally(() => setIsLoading(false))
+      }, 400)
+    }
+    window.addEventListener('prefill-ai-chat', handlePrefill)
+    return () => window.removeEventListener('prefill-ai-chat', handlePrefill)
+  }, [])
 
   const quickReplies = [
     'Bridal makeup in Bandra',
@@ -31,8 +84,8 @@ const AIChat = () => {
     'Makeup studio in Juhu',
   ]
 
-  const handleSendMessage = () => {
-    if (!inputText.trim()) return
+  const handleSendMessage = async () => {
+    if (!inputText.trim() || isLoading) return
 
     const text = inputText
     const userMessage: Message = {
@@ -44,34 +97,40 @@ const AIChat = () => {
 
     setMessages((prev) => [...prev, userMessage])
     setInputText('')
+    setIsLoading(true)
 
-    setTimeout(() => {
-      let aiResponse = ''
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+      const response = await fetch(`${apiUrl}/api/ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text }),
+      })
 
-      if (text.toLowerCase().includes('bridal')) {
-        aiResponse =
-          'For bridal makeup in Bandra, I recommend Lavelle Beauty Mumbai (4.9★) and Aurora Beauty Lounge (4.8★). Both specialize in Indian bridal looks and offer trial sessions.'
-      } else if (text.toLowerCase().includes('hair')) {
-        aiResponse =
-          'For hair services, check out Blush Studio Mumbai (4.7★, ₹₹) for great value or Velvet Touch Salon (4.6★, ₹₹) for experienced stylists.'
-      } else if (text.toLowerCase().includes('nail')) {
-        aiResponse =
-          'For nail art, Radiance Beauty Bar (4.8★, ₹₹₹) is trending with amazing designs. They also offer lash extensions and makeup services.'
-      } else {
-        aiResponse =
-          "Tell me your area and what you're looking for! I can recommend the perfect salons based on your occasion, budget, and preferences."
-      }
+      const data = await response.json()
 
       setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
-          text: aiResponse,
+          text: data.reply || "I'm here to help! Ask me about salons, services, or areas in Mumbai.",
           sender: 'ai',
           timestamp: new Date(),
         },
       ])
-    }, 1000)
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          text: "I'm having trouble connecting right now. Try asking about bridal makeup, hair, nails, or facials in Mumbai!",
+          sender: 'ai',
+          timestamp: new Date(),
+        },
+      ])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -153,6 +212,24 @@ const AIChat = () => {
                       </div>
                     </motion.div>
                   ))}
+
+                  {/* Loading indicator */}
+                  {isLoading && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex justify-start"
+                    >
+                      <div className="bg-espresso/5 text-warm-black rounded-2xl rounded-bl-none p-3">
+                        <div className="flex gap-1 items-center">
+                          <div className="w-2 h-2 bg-rose-gold rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-2 h-2 bg-rose-gold rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-2 h-2 bg-rose-gold rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                  <div ref={messagesEndRef} />
                 </div>
 
                 <div className="mt-4 pt-4">
@@ -178,15 +255,17 @@ const AIChat = () => {
                     type="text"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Ask about salons..."
-                    className="flex-1 min-w-0 bg-espresso/5 border border-espresso/10 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-warm-black placeholder-warm-black/40 focus:outline-none focus:ring-2 focus:ring-rose-gold"
+                    onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSendMessage()}
+                    placeholder={isLoading ? 'GlowCity AI is thinking...' : 'Ask about salons...'}
+                    disabled={isLoading}
+                    className="flex-1 min-w-0 bg-espresso/5 border border-espresso/10 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-warm-black placeholder-warm-black/40 focus:outline-none focus:ring-2 focus:ring-rose-gold disabled:opacity-60"
                   />
                   <motion.button
                     type="button"
-                    whileTap={{ scale: 0.95 }}
+                    whileTap={isLoading ? {} : { scale: 0.95 }}
                     onClick={handleSendMessage}
-                    className="bg-rose-gold text-warm-black rounded-lg p-2.5 sm:p-3 hover:bg-rose-gold/90 transition-colors shrink-0"
+                    disabled={isLoading || !inputText.trim()}
+                    className="bg-rose-gold text-warm-black rounded-lg p-2.5 sm:p-3 hover:bg-rose-gold/90 transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                     aria-label="Send message"
                   >
                     <Send className="h-5 w-5" />

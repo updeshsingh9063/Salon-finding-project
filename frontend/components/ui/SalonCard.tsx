@@ -36,7 +36,7 @@ const SalonCard = ({ salon, index = 0 }: SalonCardProps) => {
       whileHover={{ y: -8, transition: { duration: 0.2 } }}
       className="bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow h-full"
     >
-      <Link href={`/salons/${salon.id}`} className="block h-full flex flex-col">
+      <Link href={`/salons/${salon.id}`} className="h-full flex flex-col">
         <div className="relative aspect-[5/4] sm:aspect-[4/3] overflow-hidden">
           {!imageLoaded && (
             <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-cream via-blush/30 to-cream" />

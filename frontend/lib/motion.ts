@@ -7,6 +7,7 @@ export const fadeUp = {
 }
 
 export const fadeIn = {
+  initial: { opacity: 0 },
   whileInView: { opacity: 1 },
   viewport: { once: true, amount: 0.15 },
   transition: { duration: 0.4 },

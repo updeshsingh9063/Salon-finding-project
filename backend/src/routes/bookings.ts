@@ -1,60 +1,84 @@
 import { Router } from 'express'
-import { SALONS, SERVICES } from '../data.js'
+import { Salon } from '../models/Salon.js'
+import { Booking } from '../models/Booking.js'
+import { SERVICES } from '../data.js'
 
 const router = Router()
 
-type BookingRecord = {
-  id: string
-  salonId: string
-  salonName: string
-  serviceIds: string[]
-  date: string
-  time: string
-  customer: { name: string; phone: string; email: string; specialRequests?: string }
-  total: number
-  createdAt: string
-}
+// POST /api/bookings — create a new booking
+router.post('/', async (req, res) => {
+  try {
+    const { salonId, serviceIds, date, time, customer } = req.body
 
-const bookings: BookingRecord[] = []
+    // Validate salon exists
+    const salon = await Salon.findById(salonId)
+    if (!salon) {
+      res.status(404).json({ error: 'Salon not found' })
+      return
+    }
 
-router.post('/', (req, res) => {
-  const { salonId, serviceIds, date, time, customer } = req.body
+    // Validate required fields
+    if (!customer?.name || !customer?.phone || !customer?.email) {
+      res.status(400).json({ error: 'Customer name, phone, and email are required' })
+      return
+    }
 
-  const salon = SALONS.find((s) => s.id === salonId)
-  if (!salon) {
-    res.status(404).json({ error: 'Salon not found' })
-    return
+    if (!date || !time) {
+      res.status(400).json({ error: 'Date and time are required' })
+      return
+    }
+
+    // Calculate total price
+    const ids: string[] = Array.isArray(serviceIds) ? serviceIds : []
+    const total = ids.reduce((sum, id) => {
+      const svc = SERVICES.find((s) => s.id === id)
+      return sum + (svc?.price ?? 0)
+    }, 0)
+
+    // Generate human-readable booking ID
+    const bookingId = `GC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
+
+    const booking = await Booking.create({
+      bookingId,
+      salonId,
+      salonName: salon.name,
+      serviceIds: ids,
+      date,
+      time,
+      customer: {
+        name: customer.name,
+        phone: customer.phone,
+        email: customer.email,
+        specialRequests: customer.specialRequests ?? '',
+      },
+      customerName: customer.name,
+      customerPhone: customer.phone,
+      customerEmail: customer.email,
+      total,
+      status: 'confirmed',
+    })
+
+    console.log(`📅 New booking: ${bookingId} at ${salon.name} on ${date} ${time}`)
+    res.status(201).json(booking)
+  } catch (err) {
+    console.error('POST /api/bookings error:', err)
+    res.status(500).json({ error: 'Failed to create booking' })
   }
-
-  const ids: string[] = Array.isArray(serviceIds) ? serviceIds : []
-  const total = ids.reduce((sum, id) => {
-    const svc = SERVICES.find((s) => s.id === id)
-    return sum + (svc?.price ?? 0)
-  }, 0)
-
-  const booking: BookingRecord = {
-    id: `GC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-    salonId,
-    salonName: salon.name,
-    serviceIds: ids,
-    date: date ?? '',
-    time: time ?? '',
-    customer: customer ?? { name: '', phone: '', email: '' },
-    total,
-    createdAt: new Date().toISOString(),
-  }
-
-  bookings.push(booking)
-  res.status(201).json(booking)
 })
 
-router.get('/:id', (req, res) => {
-  const booking = bookings.find((b) => b.id === req.params.id)
-  if (!booking) {
-    res.status(404).json({ error: 'Booking not found' })
-    return
+// GET /api/bookings/:id — get booking by bookingId
+router.get('/:id', async (req, res) => {
+  try {
+    const booking = await Booking.findOne({ bookingId: req.params.id })
+    if (!booking) {
+      res.status(404).json({ error: 'Booking not found' })
+      return
+    }
+    res.json(booking)
+  } catch (err) {
+    console.error('GET /api/bookings/:id error:', err)
+    res.status(500).json({ error: 'Internal server error' })
   }
-  res.json(booking)
 })
 
 export default router

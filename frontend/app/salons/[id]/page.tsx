@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Star, MapPin, Clock, Phone, Wifi, Car, Wind, CreditCard, Heart, Share2, Calendar, Users, Sparkles } from 'lucide-react'
 import { SALONS, SERVICES } from '@/lib/data'
 import { cn } from '@/lib/utils'
 import { notFound } from 'next/navigation'
+import BookingModal from '@/components/ui/BookingModal'
+import type { Salon, Service } from '@/lib/types'
 
 type TabType = 'overview' | 'services' | 'reviews' | 'location'
 
@@ -13,8 +15,42 @@ export default function SalonDetailPage({ params }: { params: { id: string } }) 
   const [activeTab, setActiveTab] = useState<TabType>('overview')
   const [selectedServices, setSelectedServices] = useState<string[]>([])
   const [isFavorite, setIsFavorite] = useState(false)
+  const [showBooking, setShowBooking] = useState(false)
+  const [services, setServices] = useState<Service[]>([])
+  const [salon, setSalon] = useState<Salon | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const salon = SALONS.find(s => s.id === params.id)
+  // Fetch fresh salon data from API
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+    setLoading(true)
+    Promise.all([
+      fetch(`${apiUrl}/api/salons/${params.id}`).then(res => { if (!res.ok) throw new Error(); return res.json() }),
+      fetch(`${apiUrl}/api/salons/services`).then(res => { if (!res.ok) throw new Error(); return res.json() })
+    ])
+      .then(([salonData, servicesData]) => {
+        setSalon(salonData)
+        setServices(servicesData)
+        setLoading(false)
+      })
+      .catch(() => {
+        // Fallback to static data on error
+        setSalon(SALONS.find(s => s.id === params.id) ?? null)
+        setServices(SERVICES)
+        setLoading(false)
+      })
+  }, [params.id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-cream pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-rose-gold/30 border-t-rose-gold rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-warm-black/60">Loading salon details...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!salon) {
     notFound()
@@ -43,7 +79,7 @@ export default function SalonDetailPage({ params }: { params: { id: string } }) 
   }
 
   const totalPrice = selectedServices.reduce((total, serviceId) => {
-    const service = SERVICES.find(s => s.id === serviceId)
+    const service = services.find(s => s.id === serviceId)
     return total + (service?.price || 0)
   }, 0)
 
@@ -65,11 +101,12 @@ export default function SalonDetailPage({ params }: { params: { id: string } }) 
   }
 
   return (
-    <div className="min-h-screen bg-cream pt-20 pb-28 lg:pb-12">
+    <>
+      <div className="min-h-screen bg-cream pt-20 pb-28 lg:pb-12">
       <div className="relative">
         <div className="h-48 sm:h-64 md:h-96 bg-gradient-to-r from-rose-gold to-blush" />
         
-        <div className="page-container -mt-12 sm:-mt-16 md:-mt-24 relative">
+        <div className="container mx-auto px-4 md:px-6 -mt-12 sm:-mt-16 md:-mt-24 relative">
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
               <div className="flex-1">
@@ -233,7 +270,7 @@ export default function SalonDetailPage({ params }: { params: { id: string } }) 
                   </div>
 
                   <div className="space-y-4">
-                    {SERVICES.map((service) => (
+                    {services.map((service) => (
                       <div
                         key={service.id}
                         className={cn(
@@ -287,12 +324,12 @@ export default function SalonDetailPage({ params }: { params: { id: string } }) 
                             {selectedServices.length} service{selectedServices.length > 1 ? 's' : ''}
                           </div>
                         </div>
-                        <a
-                          href={`/book/${salon.id}`}
+                        <button
+                          onClick={() => setShowBooking(true)}
                           className="px-6 py-3 bg-rose-gold text-warm-black font-semibold rounded-lg hover:bg-rose-gold/90 transition-colors text-center"
                         >
                           Continue to Booking
-                        </a>
+                        </button>
                       </div>
                     </motion.div>
                   )}
@@ -488,16 +525,26 @@ export default function SalonDetailPage({ params }: { params: { id: string } }) 
             </div>
 
             <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-cream/95 backdrop-blur-md border-t border-espresso/10">
-              <a
-                href={`/book/${salon.id}`}
+              <button
+                onClick={() => setShowBooking(true)}
                 className="block w-full py-3.5 sm:py-4 bg-rose-gold text-warm-black font-semibold rounded-xl text-center shadow-lg hover:bg-rose-gold/90 transition-colors"
               >
                 Book Now
-              </a>
+              </button>
             </div>
           </div>
         </div>
       </div>
     </div>
+
+      {salon && (
+        <BookingModal
+          isOpen={showBooking}
+          onClose={() => setShowBooking(false)}
+          salonId={salon.id}
+          salonName={salon.name}
+        />
+      )}
+    </>
   )
 }

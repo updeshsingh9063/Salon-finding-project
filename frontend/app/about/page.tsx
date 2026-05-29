@@ -61,7 +61,7 @@ export default function AboutPage() {
               </h2>
               <div className="space-y-4 text-warm-black/70">
                 <p>
-                  Founded in 2024, GlowCity was born from a simple observation: 
+                  Founded in 2026, GlowCity was born from a simple observation: 
                   finding the perfect beauty salon in Mumbai was more challenging than it should be.
                 </p>
                 <p>

@@ -1,21 +1,29 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Calendar, Clock, User, Phone, Mail, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { Service } from '@/lib/types'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 
 interface BookingModalProps {
   isOpen: boolean
   onClose: () => void
+  salonId: string
   salonName: string
 }
 
-const BookingModal = ({ isOpen, onClose, salonName }: BookingModalProps) => {
+const BookingModal = ({ isOpen, onClose, salonId, salonName }: BookingModalProps) => {
   const [step, setStep] = useState(1)
+  const [services, setServices] = useState<Service[]>([])
+  const [loadingServices, setLoadingServices] = useState(true)
   const [selectedServices, setSelectedServices] = useState<string[]>([])
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [bookingId, setBookingId] = useState('')
   const [bookingDetails, setBookingDetails] = useState({
     name: '',
     phone: '',
@@ -23,17 +31,41 @@ const BookingModal = ({ isOpen, onClose, salonName }: BookingModalProps) => {
     specialRequests: '',
   })
 
-  const services = [
-    { id: '1', name: 'Haircut & Styling', duration: '1 hour', price: 1200 },
-    { id: '2', name: 'Bridal Makeup', duration: '3 hours', price: 15000 },
-    { id: '3', name: 'Manicure & Nail Art', duration: '45 mins', price: 800 },
-    { id: '4', name: 'Gold Facial', duration: '1.5 hours', price: 2500 },
-  ]
+  // Fetch live services from API
+  useEffect(() => {
+    if (isOpen) {
+      setLoadingServices(true)
+      fetch(`${API_URL}/api/salons/services`)
+        .then(res => res.json())
+        .then(data => {
+          setServices(data ?? [])
+          setLoadingServices(false)
+        })
+        .catch(() => {
+          setLoadingServices(false)
+        })
+    }
+  }, [isOpen])
 
-  const dates = [
-    '2024-05-15', '2024-05-16', '2024-05-17', '2024-05-18',
-    '2024-05-19', '2024-05-20', '2024-05-21', '2024-05-22',
-  ]
+  // Reset modal state when closed
+  useEffect(() => {
+    if (!isOpen) {
+      setStep(1)
+      setSelectedServices([])
+      setSelectedDate('')
+      setSelectedTime('')
+      setBookingId('')
+      setIsSubmitting(false)
+      setBookingDetails({ name: '', phone: '', email: '', specialRequests: '' })
+    }
+  }, [isOpen])
+
+  // Generate 8 available dates starting from tomorrow
+  const dates = Array.from({ length: 8 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() + i + 1)
+    return d.toISOString().split('T')[0]
+  })
 
   const timeSlots = [
     '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
@@ -54,8 +86,32 @@ const BookingModal = ({ isOpen, onClose, salonName }: BookingModalProps) => {
     return total + (service?.price || 0)
   }, 0)
 
-  const handleNext = () => {
-    if (step < 4) {
+  const handleNext = async () => {
+    if (step === 3) {
+      // Submit booking to API before moving to confirmation
+      setIsSubmitting(true)
+      try {
+        const res = await fetch(`${API_URL}/api/bookings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            salonId,
+            serviceIds: selectedServices,
+            date: selectedDate,
+            time: selectedTime,
+            customer: bookingDetails,
+          }),
+        })
+        const data = await res.json()
+        setBookingId(data.bookingId ?? `GC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)
+      } catch {
+        // Fallback booking ID if API fails
+        setBookingId(`GC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)
+      } finally {
+        setIsSubmitting(false)
+        setStep(4)
+      }
+    } else if (step < 4) {
       setStep(step + 1)
     } else {
       onClose()
@@ -143,33 +199,40 @@ const BookingModal = ({ isOpen, onClose, salonName }: BookingModalProps) => {
                   <h3 className="font-semibold text-warm-black mb-2">
                     Select Services
                   </h3>
-                  {services.map((service) => (
-                    <div
-                      key={service.id}
-                      className={cn(
-                        'p-4 rounded-xl border cursor-pointer transition-all',
-                        selectedServices.includes(service.id)
-                          ? 'border-rose-gold bg-rose-gold/5'
-                          : 'border-espresso/10 hover:border-rose-gold/50'
-                      )}
-                      onClick={() => toggleService(service.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{service.name}</div>
-                          <div className="text-sm text-warm-black/60">
-                            {service.duration} • ₹{service.price}
-                          </div>
-                        </div>
-                        <div className={cn(
-                          'w-5 h-5 rounded-full border',
-                          selectedServices.includes(service.id)
-                            ? 'bg-rose-gold border-rose-gold'
-                            : 'border-espresso/30'
-                        )} />
-                      </div>
+                  {loadingServices ? (
+                    <div className="py-8 text-center text-warm-black/60">
+                      <div className="w-10 h-10 border-4 border-rose-gold/30 border-t-rose-gold rounded-full animate-spin mx-auto mb-3" />
+                      Loading live services...
                     </div>
-                  ))}
+                  ) : (
+                    services.map((service) => (
+                      <div
+                        key={service.id}
+                        className={cn(
+                          'p-4 rounded-xl border cursor-pointer transition-all',
+                          selectedServices.includes(service.id)
+                            ? 'border-rose-gold bg-rose-gold/5'
+                            : 'border-espresso/10 hover:border-rose-gold/50'
+                        )}
+                        onClick={() => toggleService(service.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium">{service.name}</div>
+                            <div className="text-sm text-warm-black/60">
+                              {service.duration} • ₹{service.price}
+                            </div>
+                          </div>
+                          <div className={cn(
+                            'w-5 h-5 rounded-full border',
+                            selectedServices.includes(service.id)
+                              ? 'bg-rose-gold border-rose-gold'
+                              : 'border-espresso/30'
+                          )} />
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </motion.div>
               )}
 
@@ -324,9 +387,15 @@ const BookingModal = ({ isOpen, onClose, salonName }: BookingModalProps) => {
                     <h3 className="font-semibold text-warm-black mb-2">
                       Booking Confirmed!
                     </h3>
-                    <p className="text-warm-black/60">
+                    <p className="text-warm-black/60 mb-2">
                       Your appointment at {salonName} has been confirmed.
                     </p>
+                    {bookingId && (
+                      <p className="text-sm">
+                        Booking ID:{' '}
+                        <span className="font-bold text-rose-gold">{bookingId}</span>
+                      </p>
+                    )}
                   </div>
 
                   <div className="bg-cream rounded-xl p-4">
@@ -374,9 +443,10 @@ const BookingModal = ({ isOpen, onClose, salonName }: BookingModalProps) => {
 
                 <button
                   onClick={handleNext}
-                  className="px-6 py-2 bg-rose-gold text-warm-black font-semibold rounded-lg hover:bg-rose-gold/90 transition-colors"
+                  disabled={isSubmitting || (step === 1 && selectedServices.length === 0) || (step === 2 && (!selectedDate || !selectedTime))}
+                  className="px-6 py-2 bg-rose-gold text-warm-black font-semibold rounded-lg hover:bg-rose-gold/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {step === 4 ? 'Finish' : 'Next'}
+                  {isSubmitting ? 'Confirming...' : step === 4 ? 'Finish' : step === 3 ? 'Confirm Booking' : 'Next'}
                 </button>
               </div>
             </div>

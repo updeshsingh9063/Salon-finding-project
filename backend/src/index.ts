@@ -1,9 +1,12 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
+import { connectDB } from './config/db.js'
 import salonsRouter from './routes/salons.js'
 import bookingsRouter from './routes/bookings.js'
 import aiRouter from './routes/ai.js'
+import authRouter from './routes/auth.js'
+import registrationsRouter from './routes/registrations.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 4000
@@ -16,14 +19,34 @@ app.use(
 )
 app.use(express.json())
 
+// Health check
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'GlowCity API', timestamp: new Date().toISOString() })
+  res.json({
+    status: 'ok',
+    service: 'GlowCity API',
+    timestamp: new Date().toISOString(),
+    database: 'MongoDB (local)',
+  })
 })
 
 app.use('/api/salons', salonsRouter)
 app.use('/api/bookings', bookingsRouter)
 app.use('/api/ai', aiRouter)
+app.use('/api/auth', authRouter)
+app.use('/api/registrations', registrationsRouter)
 
-app.listen(PORT, () => {
-  console.log(`GlowCity API running at http://localhost:${PORT}`)
-})
+// Connect to MongoDB, then start server
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`\n🚀 GlowCity API  →  http://localhost:${PORT}`)
+      console.log(`📋 Health check  →  http://localhost:${PORT}/api/health`)
+      console.log(`💅 Salons API    →  http://localhost:${PORT}/api/salons`)
+      console.log(`📅 Bookings API  →  http://localhost:${PORT}/api/bookings`)
+      console.log(`🤖 AI Chat API   →  http://localhost:${PORT}/api/ai/chat\n`)
+    })
+  })
+  .catch((err) => {
+    console.error('Failed to start server:', err)
+    process.exit(1)
+  })

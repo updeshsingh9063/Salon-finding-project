@@ -9,12 +9,30 @@ const Footer = () => {
   const [email, setEmail] = useState('')
   const [subscribed, setSubscribed] = useState(false)
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (email.trim()) {
+    if (!email.trim()) return
+
+    try {
+      const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://salon-finding-project.onrender.com').replace(/\/+$/, '')
+      const res = await fetch(`${API_URL}/api/subscriptions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() })
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        alert(err.error || 'Failed to subscribe')
+        return
+      }
+
       setSubscribed(true)
       setEmail('')
       setTimeout(() => setSubscribed(false), 4000)
+    } catch (err) {
+      console.error('Subscription error:', err)
+      alert('Network error. Please try again later.')
     }
   }
 

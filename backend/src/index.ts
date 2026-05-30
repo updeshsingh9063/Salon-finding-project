@@ -7,6 +7,7 @@ import bookingsRouter from './routes/bookings.js'
 import aiRouter from './routes/ai.js'
 import authRouter from './routes/auth.js'
 import registrationsRouter from './routes/registrations.js'
+import subscriptionsRouter from './routes/subscriptions.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 4000
@@ -51,6 +52,7 @@ app.use('/api/bookings', bookingsRouter)
 app.use('/api/ai', aiRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/registrations', registrationsRouter)
+app.use('/api/subscriptions', subscriptionsRouter)
 
 // Connect to MongoDB, then start server
 connectDB()

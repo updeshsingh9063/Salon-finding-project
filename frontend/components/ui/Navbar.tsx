@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Sparkles, Building, User, Mail, Phone, Lock, CheckCircle } from 'lucide-react'
+import { Menu, X, Sparkles, Building, User, Mail, Phone, Lock, CheckCircle, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+interface Toast { id: number; message: string; type: 'error' | 'success' | 'info' }
 
 const Navbar = () => {
   const pathname = usePathname()
@@ -12,6 +14,7 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [user, setUser] = useState<{ name: string; email: string } | null>(null)
+  const [toasts, setToasts] = useState<Toast[]>([])
   
   useEffect(() => {
     const storedUser = localStorage.getItem('glowcity_user')
@@ -20,6 +23,12 @@ const Navbar = () => {
         setUser(JSON.parse(storedUser))
       } catch (e) {}
     }
+  }, [])
+
+  const showToast = useCallback((message: string, type: Toast['type'] = 'error') => {
+    const id = Date.now()
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000)
   }, [])
   
   // Modal states
@@ -62,9 +71,9 @@ const Navbar = () => {
     { label: 'About', href: '/about' },
   ]
 
-  const handleOpenModal = (type: 'signin' | 'signup' | 'list_salon') => {
+  const handleOpenModal = useCallback((type: 'signin' | 'signup' | 'list_salon') => {
     if (type === 'list_salon' && !user) {
-      alert('Please sign in first to list your salon.')
+      showToast('Please sign in first to list your salon.', 'info')
       setModalType('signin')
       setIsMobileMenuOpen(false)
       setIsSubmitted(false)
@@ -74,7 +83,7 @@ const Navbar = () => {
     setIsMobileMenuOpen(false)
     setIsSubmitted(false)
     setFormData({ name: '', email: '', password: '', salonName: '', ownerName: '', phone: '', address: '', area: 'Bandra' })
-  }
+  }, [user, showToast])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -102,7 +111,7 @@ const Navbar = () => {
 
       if (!res.ok) {
         const errData = await res.json()
-        alert(errData.error || 'Something went wrong')
+        showToast(errData.error || 'Something went wrong', 'error')
         return
       }
       
@@ -120,7 +129,7 @@ const Navbar = () => {
       }, 2000)
     } catch (error) {
       console.error('Submission error:', error)
-      alert('Failed to submit. Please try again.')
+      showToast('Failed to submit. Please try again.', 'error')
     }
   }
 
@@ -495,6 +504,34 @@ const Navbar = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Toast Notifications */}
+      <div className="fixed top-20 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
+        <AnimatePresence>
+          {toasts.map(toast => (
+            <motion.div
+              key={toast.id}
+              initial={{ opacity: 0, x: 60, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 60, scale: 0.9 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className={cn(
+                'flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl max-w-sm pointer-events-auto border',
+                toast.type === 'error' && 'bg-red-50 border-red-200 text-red-800',
+                toast.type === 'success' && 'bg-green-50 border-green-200 text-green-800',
+                toast.type === 'info' && 'bg-rose-gold/10 border-rose-gold/30 text-warm-black',
+              )}
+            >
+              <AlertCircle className={cn('h-5 w-5 shrink-0',
+                toast.type === 'error' && 'text-red-500',
+                toast.type === 'success' && 'text-green-500',
+                toast.type === 'info' && 'text-rose-gold',
+              )} />
+              <p className="text-sm font-medium">{toast.message}</p>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </>
   )
 }

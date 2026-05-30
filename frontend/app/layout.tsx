@@ -4,6 +4,7 @@ import './globals.css'
 import Navbar from '@/components/ui/Navbar'
 import Footer from '@/components/ui/Footer'
 import AIChat from '@/components/ui/AIChat'
+import ScrollToTop from '@/components/ui/ScrollToTop'
 
 const inter = Inter({ subsets: ['latin'] })
 const playfair = Playfair_Display({ 
@@ -14,6 +15,12 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: 'GlowCity | Mumbai\'s Most Loved Beauty Experience',
   description: 'Discover 200+ premium beauty salons in Mumbai. Book bridal makeup, hair styling, nail art, facials and more.',
+  keywords: 'salon Mumbai, beauty salon, bridal makeup, hair styling, nail art, GlowCity',
+  openGraph: {
+    title: 'GlowCity | Mumbai\'s Most Loved Beauty Experience',
+    description: 'Discover 200+ premium beauty salons in Mumbai.',
+    type: 'website',
+  },
 }
 
 export const viewport = {
@@ -36,6 +43,7 @@ export default function RootLayout({
         </main>
         <Footer />
         <AIChat />
+        <ScrollToTop />
       </body>
     </html>
   )

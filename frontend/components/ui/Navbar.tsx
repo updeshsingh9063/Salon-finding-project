@@ -43,6 +43,18 @@ const Navbar = () => {
     return () => { document.body.style.overflow = '' }
   }, [isMobileMenuOpen, modalType])
 
+  useEffect(() => {
+    const checkHash = () => {
+      if (window.location.hash === '#list-salon') {
+        window.history.replaceState(null, '', window.location.pathname)
+        handleOpenModal('list_salon')
+      }
+    }
+    checkHash()
+    window.addEventListener('hashchange', checkHash)
+    return () => window.removeEventListener('hashchange', checkHash)
+  }, [user]) // Re-run when user state changes so the handler has the latest user
+
   const navLinks = [
     { label: 'Salons', href: '/salons' },
     { label: 'Services', href: '/#categories' },
@@ -51,6 +63,13 @@ const Navbar = () => {
   ]
 
   const handleOpenModal = (type: 'signin' | 'signup' | 'list_salon') => {
+    if (type === 'list_salon' && !user) {
+      alert('Please sign in first to list your salon.')
+      setModalType('signin')
+      setIsMobileMenuOpen(false)
+      setIsSubmitted(false)
+      return
+    }
     setModalType(type)
     setIsMobileMenuOpen(false)
     setIsSubmitted(false)

@@ -164,7 +164,7 @@ export default function AboutPage() {
                 Explore Salons
               </a>
               <a
-                href="/salon-registration"
+                href="/#list-salon"
                 className="px-6 py-3 border-2 border-cream text-cream font-semibold rounded-lg hover:bg-cream hover:text-warm-black transition-colors"
               >
                 List Your Salon

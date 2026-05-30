@@ -16,7 +16,7 @@ const Footer = () => {
       { label: 'Top Rated', href: '/salons?sort=rating' },
     ],
     forSalons: [
-      { label: 'List Your Salon', href: '/salon-registration' },
+      { label: 'List Your Salon', href: '/#list-salon' },
       { label: 'Business Solutions', href: '/business' },
       { label: 'Partner Portal', href: '/partner' },
       { label: 'Resources', href: '/resources' },

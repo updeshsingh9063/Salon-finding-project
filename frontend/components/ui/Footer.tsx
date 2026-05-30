@@ -7,11 +7,15 @@ import { useState } from 'react'
 
 const Footer = () => {
   const [email, setEmail] = useState('')
-  const [subscribed, setSubscribed] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [message, setMessage] = useState('')
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim()) return
+
+    setStatus('loading')
+    setMessage('')
 
     try {
       const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://salon-finding-project.onrender.com').replace(/\/+$/, '')
@@ -22,17 +26,26 @@ const Footer = () => {
       })
 
       if (!res.ok) {
-        const err = await res.json()
-        alert(err.error || 'Failed to subscribe')
+        const err = await res.json().catch(() => ({}))
+        setStatus('error')
+        // If it's a 404, it means Render is still deploying
+        if (res.status === 404) {
+          setMessage('API is still deploying. Please wait a minute and try again.')
+        } else {
+          setMessage(err.error || 'Failed to subscribe')
+        }
+        setTimeout(() => setStatus('idle'), 5000)
         return
       }
 
-      setSubscribed(true)
+      setStatus('success')
       setEmail('')
-      setTimeout(() => setSubscribed(false), 4000)
+      setTimeout(() => setStatus('idle'), 5000)
     } catch (err) {
       console.error('Subscription error:', err)
-      alert('Network error. Please try again later.')
+      setStatus('error')
+      setMessage('Network error. Please try again later.')
+      setTimeout(() => setStatus('idle'), 5000)
     }
   }
 
@@ -94,7 +107,7 @@ const Footer = () => {
                 <p className="text-cream/50 text-sm">Join 10,000+ subscribers. No spam, ever.</p>
               </div>
             </div>
-            {subscribed ? (
+            {status === 'success' ? (
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -104,25 +117,38 @@ const Footer = () => {
                 You&apos;re subscribed! Welcome ✨
               </motion.div>
             ) : (
-              <form onSubmit={handleSubscribe} className="flex gap-2 w-full md:w-auto">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  required
-                  className="flex-1 md:w-56 bg-cream/8 border border-cream/15 rounded-xl px-4 py-2.5 text-cream placeholder-cream/40 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/50 transition-all"
-                />
-                <motion.button
-                  type="submit"
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="px-4 py-2.5 bg-rose-gold text-warm-black font-semibold rounded-xl text-sm flex items-center gap-1.5 hover:bg-rose-gold/90 transition-colors"
-                >
-                  Subscribe
-                  <ArrowRight className="h-4 w-4" />
-                </motion.button>
-              </form>
+              <div className="flex flex-col gap-2 w-full md:w-auto">
+                <form onSubmit={handleSubscribe} className="flex gap-2 w-full">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    required
+                    disabled={status === 'loading'}
+                    className="flex-1 md:w-56 bg-cream border border-cream/20 rounded-xl px-4 py-2.5 text-warm-black placeholder-warm-black/40 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/80 transition-all disabled:opacity-50"
+                  />
+                  <motion.button
+                    type="submit"
+                    disabled={status === 'loading'}
+                    whileHover={status !== 'loading' ? { scale: 1.04 } : {}}
+                    whileTap={status !== 'loading' ? { scale: 0.97 } : {}}
+                    className="px-4 py-2.5 bg-rose-gold text-warm-black font-semibold rounded-xl text-sm flex items-center gap-1.5 hover:bg-rose-gold/90 transition-colors disabled:opacity-70"
+                  >
+                    {status === 'loading' ? 'Sending...' : 'Subscribe'}
+                    {status !== 'loading' && <ArrowRight className="h-4 w-4" />}
+                  </motion.button>
+                </form>
+                {status === 'error' && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-400 text-xs font-medium pl-1"
+                  >
+                    {message}
+                  </motion.p>
+                )}
+              </div>
             )}
           </div>
         </div>

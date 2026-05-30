@@ -7,7 +7,7 @@ import SalonCard from '@/components/ui/SalonCard'
 import { fadeUp } from '@/lib/motion'
 import type { Salon } from '@/lib/types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://salon-finding-project.onrender.com'
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://salon-finding-project.onrender.com').replace(/\/+$/, '')
 
 // Skeleton loader for a salon card
 const SalonCardSkeleton = ({ delay = 0 }: { delay?: number }) => (

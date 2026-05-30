@@ -1,7 +1,7 @@
 const API_URL =
-  (typeof window !== 'undefined'
+  ((typeof window !== 'undefined'
     ? process.env.NEXT_PUBLIC_API_URL
-    : process.env.NEXT_PUBLIC_API_URL) ?? 'https://salon-finding-project.onrender.com'
+    : process.env.NEXT_PUBLIC_API_URL) ?? 'https://salon-finding-project.onrender.com').replace(/\/+$/, '')
 
 // ─── Salons ────────────────────────────────────────────────────────────────
 

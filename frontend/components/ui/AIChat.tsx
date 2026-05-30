@@ -51,7 +51,7 @@ const AIChat = () => {
           { id: Date.now().toString(), text, sender: 'user', timestamp: new Date() },
         ])
         setIsLoading(true)
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://salon-finding-project.onrender.com'
+        const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://salon-finding-project.onrender.com').replace(/\/+$/, '')
         fetch(`${apiUrl}/api/ai/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -100,7 +100,7 @@ const AIChat = () => {
     setIsLoading(true)
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://salon-finding-project.onrender.com'
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://salon-finding-project.onrender.com').replace(/\/+$/, '')
       const response = await fetch(`${apiUrl}/api/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

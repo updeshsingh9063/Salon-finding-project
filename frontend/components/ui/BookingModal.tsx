@@ -6,7 +6,7 @@ import { X, Calendar, Clock, User, Phone, Mail, MessageSquare } from 'lucide-rea
 import { cn } from '@/lib/utils'
 import type { Service } from '@/lib/types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://salon-finding-project.onrender.com'
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://salon-finding-project.onrender.com').replace(/\/+$/, '')
 
 interface BookingModalProps {
   isOpen: boolean

@@ -13,7 +13,24 @@ const PORT = Number(process.env.PORT) || 4000
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        'http://localhost:3000',
+        'https://salon-finding-project.vercel.app',
+        process.env.FRONTEND_URL?.replace(/\/$/, '') // Remove trailing slash if present
+      ].filter(Boolean)
+      
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true)
+      } else {
+        // Fallback for Vercel preview URLs
+        if (origin && origin.endsWith('.vercel.app')) {
+          callback(null, true)
+        } else {
+          callback(new Error('Not allowed by CORS'))
+        }
+      }
+    },
     credentials: true,
   })
 )
